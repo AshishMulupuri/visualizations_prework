@@ -235,3 +235,145 @@ def update_output(selected_agent, selected_sentiment, selected_response, selecte
     return container
 
 # ... (rest of your Dash app code to run the server)
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+from jupyter_dash import JupyterDash
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import pandas as pd
+import plotly.express as px
+from wordcloud import WordCloud
+import base64
+from io import BytesIO
+from dash.exceptions import PreventUpdate
+
+# Initialize the Dash app
+app = JupyterDash(__name__)
+
+app.layout = html.Div([
+    dcc.Dropdown(
+        id='agent-dropdown',
+        options=[{'label': i, 'value': i} for i in result_df['RACF_ID'].unique()],
+        value=result_df['RACF_ID'].unique()[0]
+    ),
+    dcc.Dropdown(
+        id='sentiment-dropdown',
+        options=[{'label': i, 'value': i} for i in result_df['sentiment'].unique()],
+        value='pos'
+    ),
+    dcc.Dropdown(
+        id='response-dropdown',
+        options=[{'label': i, 'value': i} for i in result_df['target_response'].unique()],
+        value='agent'
+    ),
+    dcc.Dropdown(
+        id='tag-column-dropdown',
+        options=[{'label': 'Tags 1', 'value': 'cs_tags'}, {'label': 'Tags 2', 'value': 'sc_tags'}],
+        value='cs_tags'
+    ),
+    html.Div(id='tags-output-container',children='Select options to see results....')
+])
+
+@app.callback(
+    Output('tags-output-container', 'children'),
+    [Input('agent-dropdown', 'value'),
+     Input('sentiment-dropdown', 'value'),
+     Input('response-dropdown', 'value'),
+     Input('tag-column-dropdown', 'value')]
+)
+def update_output(selected_agent, selected_sentiment, selected_response, selected_tag_col):
+    #Ensure that thefilter values are valid
+    if not selected_agent or not selected_sentiment or not selected_response:
+        raise PreventUpdate
+    # Filter the dataframe based on selections
+    filtered_df = result_df[(result_df['RACF_ID'] == selected_agent) & (result_df['sentiment'] == selected_sentiment) & (result_df['target_response'] == selected_response)]
+    
+    # Ensure there is data after filtering
+    if filtered_df.empty:
+        raise PreventUpdate
+        
+    # Check if the selected_tag_col is valid
+    if selected_tag_col not in filtered_df:
+        raise PreventUpdate
+        
+    # Get the liost of tags from the selected tag column
+    # Careful with the explode method
+    try:
+        # Ensure the column contains lists and then explode
+        if isinstance(filtered_df[selected_tag_col].iloc[0], list):
+            tags_series = filtered_df[selected_tag_col].explode()
+        else:
+            raise PreventUpdate
+    except AttributeError as e:
+        print(e)
+        # If the column doesn't contain lists, explode will raise an AttributeError
+        raise PreventUpdate
+        
+    # Make sure tags are strings and counts are integers    
+    tags = tags_series.astype(str).value_counts().reset_index()
+ 
+
+    # Get the list of tags from the selected tag column
+    # --> tags = filtered_df[selected_tag_col].explode().value_counts()
+
+    # Create a visual representation of tags
+    # For example, generate a bar chart using Plotly or create custom HTML boxes
+    # Get the list of tags from the selected tag column
+    
+    # --> tags = filtered_df[selected_tag_col].explode().value_counts().reset_index()
+    tags.columns = ['Tag', 'Frequency']
+    
+    #Convert the Frequency column to integers if they are not
+    tags['Frequency'] = tags['Frequency'].astype(int)
+    
+    # Generate the word cloud image
+    wordcloud = WordCloud(width=800, height=400).generate_from_frequencies(dict(tags))
+    img = BytesIO()
+    wordcloud.to_image().save(img, format='PNG')
+    
+    # Encode the image to display in the Dash app
+    img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
+    image_src = f'data:image/png;base64,{img_b64}'
+
+    # Generate a bar chart using Plotly
+    fig = px.bar(tags, x='Frequency', y='Tag', orientation='h')
+    
+     # Create a container that includes both the bar chart and the word cloud image
+    container = html.Div([
+        dcc.Graph(figure=fig),  # The bar chart
+        html.Img(src=image_src, style={'width': '100%', 'height': 'auto'})  # The word cloud image
+    ])
+
+    return container
+    
+    
+    # Return the Plotly figure
+    # return dcc.Graph(figure=fig)
+
+
+
+    # Here we'll just return the tags in a preformatted text as a placeholder
+    # return html.Pre(str(tags))
+
+if __name__ == '__main__':
+    app.run_server(debug=True,mode='external',
+                   host='0.0.0.0', port=8050)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
