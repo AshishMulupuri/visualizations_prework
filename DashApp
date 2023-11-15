@@ -163,3 +163,75 @@ def update_output(selected_agent, selected_sentiment, selected_response, selecte
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+------------------------------------------------------
+
+from dash.dependencies import Input, Output
+import pandas as pd
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.express as px
+
+# ... (rest of your Dash app setup)
+
+@app.callback(
+    Output('tags-output-container', 'children'),
+    [Input('agent-dropdown', 'value'),
+     Input('sentiment-dropdown', 'value'),
+     Input('response-dropdown', 'value'),
+     Input('tag-column-dropdown', 'value')]
+)
+def update_output(selected_agent, selected_sentiment, selected_response, selected_tag_col):
+    # Filter the dataframe based on selections
+    filtered_df = df[(df['col1'] == selected_agent) & (df['col2'] == selected_sentiment) & (df['col3'] == selected_response)]
+    
+    # Get the list of tags from the selected tag column
+    tags = filtered_df[selected_tag_col].explode().value_counts().reset_index()
+    tags.columns = ['Tag', 'Frequency']
+
+    # Generate a bar chart using Plotly
+    fig = px.bar(tags, x='Frequency', y='Tag', orientation='h')
+    
+    # Return the Plotly figure
+    return dcc.Graph(figure=fig)
+
+# ... (rest of your Dash app code to run the server)
+-------------------------------------------------------------
+# ... (rest of your imports)
+from wordcloud import WordCloud
+import base64
+from io import BytesIO
+
+# ... (rest of your Dash app setup)
+
+@app.callback(
+    Output('tags-output-container', 'children'),
+    [Input('agent-dropdown', 'value'),
+     Input('sentiment-dropdown', 'value'),
+     Input('response-dropdown', 'value'),
+     Input('tag-column-dropdown', 'value')]
+)
+def update_output(selected_agent, selected_sentiment, selected_response, selected_tag_col):
+    # ... (your existing filtering logic)
+
+    # Generate the word cloud image
+    wordcloud = WordCloud(width=800, height=400).generate_from_frequencies(dict(tags))
+    img = BytesIO()
+    wordcloud.to_image().save(img, format='PNG')
+    
+    # Encode the image to display in the Dash app
+    img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
+    image_src = f'data:image/png;base64,{img_b64}'
+
+    # Generate a bar chart using Plotly
+    # ... (your existing bar chart logic)
+
+    # Create a container that includes both the bar chart and the word cloud image
+    container = html.Div([
+        dcc.Graph(figure=fig),  # The bar chart
+        html.Img(src=image_src, style={'width': '100%', 'height': 'auto'})  # The word cloud image
+    ])
+
+    return container
+
+# ... (rest of your Dash app code to run the server)
