@@ -97,3 +97,69 @@ if __name__ == '__main__':
 `Run Dash on local Network`
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
+
+---------------------------------------------------------------------------------------------------
+
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import pandas as pd
+
+# Sample dataframe
+df = pd.DataFrame({
+    'col1': ['Agent A', 'Agent B'],
+    'col2': ['pos', 'neg'],
+    'col3': ['agent', 'company'],
+    'col4': [[...], [...]],  # replace with actual lists of tags
+    'col5': [[...], [...]],  # replace with actual lists of tags
+})
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    dcc.Dropdown(
+        id='agent-dropdown',
+        options=[{'label': i, 'value': i} for i in df['col1'].unique()],
+        value=df['col1'].unique()[0]
+    ),
+    dcc.Dropdown(
+        id='sentiment-dropdown',
+        options=[{'label': i, 'value': i} for i in df['col2'].unique()],
+        value='pos'
+    ),
+    dcc.Dropdown(
+        id='response-dropdown',
+        options=[{'label': i, 'value': i} for i in df['col3'].unique()],
+        value='agent'
+    ),
+    dcc.Dropdown(
+        id='tag-column-dropdown',
+        options=[{'label': 'Tags 1', 'value': 'col4'}, {'label': 'Tags 2', 'value': 'col5'}],
+        value='col4'
+    ),
+    html.Div(id='tags-output-container')
+])
+
+@app.callback(
+    Output('tags-output-container', 'children'),
+    [Input('agent-dropdown', 'value'),
+     Input('sentiment-dropdown', 'value'),
+     Input('response-dropdown', 'value'),
+     Input('tag-column-dropdown', 'value')]
+)
+def update_output(selected_agent, selected_sentiment, selected_response, selected_tag_col):
+    # Filter the dataframe based on selections
+    filtered_df = df[(df['col1'] == selected_agent) & (df['col2'] == selected_sentiment) & (df['col3'] == selected_response)]
+    
+    # Get the list of tags from the selected tag column
+    tags = filtered_df[selected_tag_col].explode().value_counts()
+
+    # Create a visual representation of tags
+    # For example, generate a bar chart using Plotly or create custom HTML boxes
+    # Here we'll just return the tags in a preformatted text as a placeholder
+    return html.Pre(str(tags))
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
