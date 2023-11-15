@@ -1,0 +1,99 @@
+`Dash App basic structure`
+# Import necessary libraries
+import dash
+from dash import html, dcc, Input, Output
+import plotly.express as px
+import pandas as pd
+
+# Load and prepare your data
+# df = pd.read_csv('your_data.csv')
+# ... Data cleaning and preparation ...
+
+# Initialize Dash app
+app = dash.Dash(__name__)
+
+# Define app layout
+app.layout = html.Div([
+    dcc.Dropdown(
+        id='agent-dropdown',
+        options=[{'label': i, 'value': i} for i in df['agent_id'].unique()],
+        value=df['agent_id'].unique()[0]
+    ),
+    dcc.RadioItems(
+        id='sentiment-select',
+        options=[{'label': 'Positive', 'value': 'pos'},
+                 {'label': 'Neutral', 'value': 'neu'},
+                 {'label': 'Negative', 'value': 'neg'}],
+        value='pos'
+    ),
+    html.Div(id='keyword-display')
+])
+
+# Callback for updating the keyword display
+@app.callback(
+    Output('keyword-display', 'children'),
+    [Input('agent-dropdown', 'value'),
+     Input('sentiment-select', 'value')]
+)
+def update_keywords(agent_id, sentiment):
+    # Extract keywords based on selected agent and sentiment
+    # ... keyword extraction logic ...
+
+    # Return a component with keywords
+    return html.Div([html.P(keyword) for keyword in extracted_keywords])
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
+----------------------------------------------------------------------------------------------------------------------------------------------------
+`Dash App with popping words` 
+# Import necessary libraries
+import dash
+from dash import html, dcc, Input, Output
+import pandas as pd
+
+# Dummy data - replace with your actual data
+df = pd.DataFrame({
+    'agent_id': [1, 2, 3],
+    'keywords': [['keyword1', 'keyword2'], ['keyword3'], ['keyword4', 'keyword5', 'keyword6']]
+})
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+
+# Define the app layout
+app.layout = html.Div([
+    dcc.Dropdown(
+        id='agent-dropdown',
+        options=[{'label': i, 'value': i} for i in df['agent_id'].unique()],
+        value=df['agent_id'].unique()[0]
+    ),
+    html.Div(id='keywords-container')
+])
+
+# Define the callback for updating the keywords display
+@app.callback(
+    Output('keywords-container', 'children'),
+    [Input('agent-dropdown', 'value')]
+)
+def update_keywords(agent_id):
+    keywords = df[df['agent_id'] == agent_id]['keywords'].iloc[0]
+    return [html.Div(keyword, style={
+            'animation': f'fadeIn 0.5s ease {index * 0.5}s forwards',
+            'opacity': '0'
+        }) for index, keyword in enumerate(keywords)]
+
+# Include external CSS for animations
+app.css.append_css({
+    'external_url': 'https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css'
+})
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+-----------------------------------------------------------------------------------------
+`Run Dash on local Network`
+if __name__ == '__main__':
+    app.run_server(debug=True, host='0.0.0.0', port=8050)
