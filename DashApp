@@ -364,9 +364,46 @@ if __name__ == '__main__':
                    host='0.0.0.0', port=8050)
 
 
+--------------------------------rough----------------------------------------------------------------------------
+
+# Flatten the list of phrases into a list of words
+results_df['col5_words'] = results_df['col5'].apply(lambda phrases: [word for phrase in phrases for word in phrase.split()])
+
+print(results_df['col5_words'])
+
+# Semantic analysis
 
 
+from sklearn.cluster import KMeans
+import numpy as np
 
+# Load spaCy model
+nlp = spacy.load('en_core_web_md')
+
+def get_semantic_topics(words, n_clusters=5):
+    # Generate embeddings for each word
+    embeddings = np.array([nlp(word).vector for word in words])
+
+    # Use KMeans to cluster embeddings
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(embeddings)
+
+    # Create a dictionary to hold words for each cluster
+    clustered_words = {i: [] for i in range(n_clusters)}
+
+    # Assign words to clusters
+    for word, label in zip(words, kmeans.labels_):
+        clustered_words[label].append(word)
+
+    # Get unique words in each cluster to form topics
+    topics = [' '.join(set(cluster)) for cluster in clustered_words.values()]
+
+    return topics
+
+# Apply the function to each row in 'col5_words'
+results_df['topics'] = results_df['col5_words'].apply(get_semantic_topics)
+
+# Now 'topics' column contains semantic topics for each agent
+print(results_df['topics'])
 
 
 
